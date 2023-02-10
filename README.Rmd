@@ -1,0 +1,172 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/"
+)
+options(digits = 4, width = 120)
+```
+
+# datadict-cmd: Utilities to run the R package [datadict](https://github.com/epicentre-msf/datadict) from the command line
+
+### Installing required R packages
+
+From command line:
+```
+Rscript R/_install_deps.R
+```
+
+Or, from R:
+```{r, eval=FALSE}
+install.packages(c("readxl", "remotes"))
+remotes::install_github("epicentre-msf/datadict")
+```
+
+
+### Check if data dictionary is valid
+
+```
+Rscript R/cmd_valid_dict.R [dict] [verbose]
+```
+
+#### Arguments:
+
+Note that from command line arguments are currently unnamed and so must be specified in order (this can be improved in future).
+
+1. `dict`: path to data dictionary file (must be .xlsx)
+2. `verbose`: TRUE/FALSE indicating whether to give warnings describing the checks that have failed (if any). Optional, defaults to TRUE.
+
+#### Outputs:
+
+`TRUE` if all checks pass, `FALSE` if any checks fail. If `verbose = TRUE` and any checks fail, will also return description of checks that have failed.
+
+#### Examples:
+
+Path to valid dictionary, `verbose` unspecified (defaults to TRUE)
+```
+$ Rscript R/cmd_valid_dict.R data/dict_valid.xlsx
+[1] TRUE
+```
+
+Path to valid dictionary, `verbose = FALSE`
+```
+$ Rscript R/cmd_valid_dict.R data/dict_valid.xlsx FALSE
+[1] TRUE
+```
+
+Path to nonvalid dictionary, `verbose` unspecified (defaults to TRUE)
+```
+$ Rscript R/cmd_valid_dict.R data/dict_nonvalid.xlsx
+[1] FALSE
+Message d'avis :
+- Missing values in column(s): "type"
+- Duplicated values in column `variable_name`: "source_water" 
+```
+
+Path to nonvalid dictionary, `verbose = FALSE`
+```
+$ Rscript R/cmd_valid_dict.R data/dict_nonvalid.xlsx FALSE
+[1] FALSE
+```
+
+
+### Check if dataset is valid (i.e. corresponds to data dictionary)
+
+```
+Rscript R/cmd_valid_data.R [dict] [data] [format_coded] [verbose]
+```
+
+#### Arguments:
+
+1. `data`: path to dataset file (must be .xlsx), only first sheet is read
+2. `dict`: path to data dictionary file (must be .xlsx)
+3. `format_coded`: Are Coded-list type variables encoded as raw values ("value") or labels ("label") within the dataset. E.g. Variable `sex` might coded as 0/1 ("value") or "Male"/"Female" ("label"). Defaults to "label". Must be specified by user uploading the data.
+4. `verbose`: TRUE/FALSE indicating whether to give warnings describing the checks that have failed (if any). Optional, defaults to TRUE.
+
+#### Outputs:
+
+`TRUE` if all checks pass, `FALSE` if any checks fail. If `verbose = TRUE` and any checks fail, will also return description of checks that have failed. If dictionary does not pass all checks will fail with error.
+
+#### Examples:
+
+Path to valid dataset, `verbose` unspecified (defaults to TRUE)
+```
+$ Rscript R/cmd_valid_data.R data/data_valid.xlsx data/dict_valid.xlsx
+[1] TRUE
+```
+
+Path to nonvalid dataset, `verbose` unspecified (defaults to TRUE)
+```
+$ Rscript R/cmd_valid_data.R data/data_nonvalid.xlsx data/dict_valid.xlsx
+[1] FALSE
+Message d'avis :
+- Columns defined in `dict` but not present in `data`: "ilness_other"
+- Variables of type 'Numeric' contain nonvalid values: "age_years" 
+```
+
+Path to nonvalid dataset, set `verbose` to FALSE
+```
+$ Rscript R/cmd_valid_data.R data/data_nonvalid.xlsx data/dict_valid.xlsx label FALSE
+[1] FALSE
+```
+
+Path to valid dataset, but set `format_coded` to "value" when in fact the format in the dataset is "label"
+```
+$ Rscript R/cmd_valid_data.R data/data_valid.xlsx data/dict_valid.xlsx value
+[1] FALSE
+Message d'avis :
+- Variables of type 'Coded list' contain nonvalid values: "location", "cluster", "source_water", "sex", "age_under_one", "arrived", "departed", "born", "died", "illness", "oedema", "source_water_other", "cause_death", "cause_death_other", "ilness_other" 
+```
+
+Path to valid dataset, but dictionary is nonvalid
+```
+$ Rscript R/cmd_valid_data.R data/data_valid.xlsx data/dict_nonvalid.xlsx
+Erreur : Dictionary does not pass all checks
+Exécution arrêtée
+```
+
+
+### Check *k* anonymity
+
+```
+Rscript R/cmd_k_anonymity.R [data] [vars]
+```
+
+#### Arguments:
+
+1. `data`: path to dataset file (must be .xlsx), only first sheet is read
+2. `vars`: comma-separated list of relevant variables
+
+#### Outputs:
+
+Integer, the observed minimum value of *k* in the dataset. If this value is
+greater than or equal to the pre-specified *k* anonymity threshold for the
+project, then the data is sufficiently pseudonymized. If the observed value of
+*k* is lower than the threshold, further pseudonymization is required.
+
+#### Examples:
+
+Assuming a pre-specified *k* of 5, the example below is sufficiently pseudonymized
+```
+$ Rscript R/cmd_k_anonymity.R data/data_valid.xlsx location,cluster,sex
+[1] 37
+```
+
+Assuming a pre-specified *k* of 5, the example below is not sufficiently pseudonymized
+```
+$ Rscript R/cmd_k_anonymity.R data/data_valid.xlsx location,cluster,sex,source_water
+[1] 1
+```
+
+Specify variable that doesn't exist in the dataset
+```
+$ Rscript R/cmd_k_anonymity.R data/data_valid.xlsx location,var_doesnt_exit
+Erreur : The following variables do no exist in the dataset: "var_doesnt_exit"
+Exécution arrêtée
+```
