@@ -117,7 +117,7 @@ Path to valid dataset, but dictionary is nonvalid
     Erreur : Dictionary does not pass all checks
     Exécution arrêtée
 
-### Check *k* anonymity
+### Check *k* anonymity, with manual specification of indirect identifiers
 
     Rscript R/cmd_k_anonymity.R [data] [vars]
 
@@ -154,3 +154,29 @@ Specify variable that doesn’t exist in the dataset
     $ Rscript R/cmd_k_anonymity.R data/data_valid.xlsx location,var_doesnt_exit
     Erreur : The following variables do no exist in the dataset: "var_doesnt_exit"
     Exécution arrêtée
+
+### Check *k* anonymity, pulling indirect identifiers from data dictionary
+
+    Rscript R/cmd_k_anonymity_dict.R [data] [dict]
+
+#### Arguments:
+
+1.  `data`: path to dataset file (must be .xlsx), only first sheet is
+    read
+2.  `dict`: path to data dictionary file (must be .xlsx)
+
+#### Outputs:
+
+Integer, the observed minimum value of *k* in the dataset. If this value
+is greater than or equal to the pre-specified *k* anonymity threshold
+for the project, then the data is sufficiently pseudonymized. If the
+observed value of *k* is lower than the threshold, further
+pseudonymization is required.
+
+#### Examples:
+
+Assuming a pre-specified *k* of 5, the example below is sufficiently
+pseudonymized
+
+    $ Rscript R/cmd_k_anonymity_dict.R data/data_valid.xlsx data/dict_valid.xlsx
+    [1] 37
